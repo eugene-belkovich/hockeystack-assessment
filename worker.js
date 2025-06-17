@@ -35,7 +35,7 @@ const generateLastModifiedDateFilter = (date, nowDate, propertyName = 'hs_lastmo
 /**
  * Get access token from HubSpot
  */
-const refreshAccessToken = async (domain, hubId, tryCount) => {
+const refreshAccessToken = async (domain, hubId) => {
   const {HUBSPOT_CID, HUBSPOT_CS} = process.env;
   const account = domain.integrations.hubspot.accounts.find(account => account.hubId === hubId);
   const {accessToken, refreshToken} = account;
@@ -110,7 +110,7 @@ const processCompanies = async (domain, hubId, q) => {
 
     const data = searchResult?.results || [];
 
-    offsetObject.after = parseInt(searchResult?.paging?.next?.after);
+    offsetObject.after = searchResult?.paging?.next?.after ? parseInt(searchResult.paging.next.after) : undefined;
 
     data.forEach(company => {
       if (!company.properties) return;
@@ -216,13 +216,15 @@ const processContacts = async (domain, hubId, q) => {
         ).json()
       )?.results || [];
 
+    const processedContactIds = new Set();
     const companyAssociations = Object.fromEntries(
       companyAssociationsResults
-        .map(a => {
-          if (a.from) {
-            contactsToAssociate.splice(contactsToAssociate.indexOf(a.from.id), 1);
-            return [a.from.id, a.to[0].id];
-          } else return false;
+        .map(association => {
+          if (association.from && !processedContactIds.has(association.from.id)) {
+            processedContactIds.add(association.from.id);
+            return [association.from.id, association.to?.[0]?.id];
+          }
+          return false;
         })
         .filter(x => x)
     );
@@ -327,16 +329,17 @@ const processMeetings = async (domain, hubId, q) => {
         ).json()
       )?.results || [];
 
-    const meetingToContactsAssociations = Object.fromEntries(
-      meetingToContactsAssociationsResults
-        .map(a => {
-          if (a.from) {
-            meetingIds.splice(meetingIds.indexOf(a.from.id), 1);
-            return [a.from.id, a.to[0].id];
-          } else return false;
-        })
-        .filter(x => x)
-    );
+    const processedMeetingIds = new Set();
+    const meetingToContactsAssociations = new Map();
+
+    meetingToContactsAssociationsResults.forEach(association => {
+      if (association.from && !processedMeetingIds.has(association.from.id)) {
+        processedMeetingIds.add(association.from.id);
+        if (association.to?.[0]?.id) {
+          meetingToContactsAssociations.set(association.from.id, association.to[0].id);
+        }
+      }
+    });
 
     const contactIds = Array.from(new Set(Object.values(meetingToContactsAssociations)));
 
