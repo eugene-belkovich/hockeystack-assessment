@@ -78,6 +78,6 @@ const DomainSchema = new Schema({
       }]
     }
   }
-}, { minimize: false });
+}, {minimize: false});
 
 module.exports = mongoose.model('Domain', DomainSchema);

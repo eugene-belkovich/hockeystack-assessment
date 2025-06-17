@@ -1,11 +1,11 @@
 const hubspot = require('@hubspot/api-client');
-const { queue } = require('async');
+const {queue} = require('async');
 const _ = require('lodash');
 
-const { filterNullValuesFromObject, goal } = require('./utils');
+const {filterNullValuesFromObject, goal} = require('./utils');
 const Domain = require('./Domain');
 
-const hubspotClient = new hubspot.Client({ accessToken: '' });
+const hubspotClient = new hubspot.Client({accessToken: ''});
 
 const LIMIT = 100;
 const TOTAL_MIN = 0;
@@ -26,8 +26,8 @@ const generateLastModifiedDateFilter = (date, nowDate, propertyName = 'hs_lastmo
   const lastModifiedDateFilter = date ?
     {
       filters: [
-        { propertyName, operator: OperatorEnum.GreaterOrEqual, value: `${date.valueOf()}` },
-        { propertyName, operator: OperatorEnum.LessOrEqual, value: `${nowDate.valueOf()}` }
+        {propertyName, operator: OperatorEnum.GreaterOrEqual, value: `${date.valueOf()}`},
+        {propertyName, operator: OperatorEnum.LessOrEqual, value: `${nowDate.valueOf()}`}
       ]
     } :
     {};
@@ -47,9 +47,9 @@ const saveDomain = async domain => {
  * Get access token from HubSpot
  */
 const refreshAccessToken = async (domain, hubId, tryCount) => {
-  const { HUBSPOT_CID, HUBSPOT_CS } = process.env;
+  const {HUBSPOT_CID, HUBSPOT_CS} = process.env;
   const account = domain.integrations.hubspot.accounts.find(account => account.hubId === hubId);
-  const { accessToken, refreshToken } = account;
+  const {accessToken, refreshToken} = account;
 
   return hubspotClient.oauth.tokensApi
     .createToken('refresh_token', undefined, undefined, HUBSPOT_CID, HUBSPOT_CS, refreshToken)
@@ -84,7 +84,7 @@ const processCompanies = async (domain, hubId, q) => {
     const lastModifiedDateFilter = generateLastModifiedDateFilter(lastModifiedDate, now);
     const searchObject = {
       filterGroups: [lastModifiedDateFilter],
-      sorts: [{ propertyName: 'hs_lastmodifieddate', direction: 'ASCENDING' }],
+      sorts: [{propertyName: 'hs_lastmodifieddate', direction: 'ASCENDING'}],
       properties: [
         'name',
         'domain',
@@ -174,7 +174,7 @@ const processContacts = async (domain, hubId, q) => {
     const lastModifiedDateFilter = generateLastModifiedDateFilter(lastModifiedDate, now, 'lastmodifieddate');
     const searchObject = {
       filterGroups: [lastModifiedDateFilter],
-      sorts: [{ propertyName: 'lastmodifieddate', direction: 'ASCENDING' }],
+      sorts: [{propertyName: 'lastmodifieddate', direction: 'ASCENDING'}],
       properties: [
         'firstname',
         'lastname',
@@ -219,7 +219,7 @@ const processContacts = async (domain, hubId, q) => {
     const companyAssociationsResults = (await (await hubspotClient.apiRequest({
       method: 'post',
       path: '/crm/v3/associations/CONTACTS/COMPANIES/batch/read',
-      body: { inputs: contactsToAssociate.map(contactId => ({ id: contactId })) }
+      body: {inputs: contactsToAssociate.map(contactId => ({id: contactId}))}
     })).json())?.results || [];
 
     const companyAssociations = Object.fromEntries(companyAssociationsResults.map(a => {
@@ -289,7 +289,7 @@ const processMeetings = async (domain, hubId, q) => {
     const lastModifiedDateFilter = generateLastModifiedDateFilter(lastModifiedDate, now, 'hs_lastmodifieddate');
     const searchObject = {
       filterGroups: [lastModifiedDateFilter],
-      sorts: [{ propertyName: 'hs_lastmodifieddate', direction: 'ASCENDING' }],
+      sorts: [{propertyName: 'hs_lastmodifieddate', direction: 'ASCENDING'}],
       properties: [
         'hs_meeting_title',
         'hs_timestamp',
@@ -323,7 +323,7 @@ const processMeetings = async (domain, hubId, q) => {
     const meetingToContactsAssociationsResults = (await (await hubspotClient.apiRequest({
       method: 'post',
       path: '/crm/v3/associations/MEETINGS/CONTACTS/batch/read',
-      body: { inputs: meetingIds.map(meetingId => ({ id: meetingId })) }
+      body: {inputs: meetingIds.map(meetingId => ({id: meetingId}))}
     })).json())?.results || [];
 
     const meetingToContactsAssociations = Object.fromEntries(meetingToContactsAssociationsResults.map(a => {
@@ -338,7 +338,7 @@ const processMeetings = async (domain, hubId, q) => {
     const contactsResults = (await (await hubspotClient.apiRequest({
       method: 'post',
       path: '/crm/v3/objects/contacts/batch/read',
-      body: { inputs: contactIds.map(id => ({ id })) }
+      body: {inputs: contactIds.map(id => ({id}))}
     })).json())?.results || [];
 
     const contactIdToEmailMap = Object.fromEntries(
@@ -387,7 +387,7 @@ const createQueue = (domain, actions) => queue(async (action, callback) => {
   actions.push(action);
 
   if (actions.length > QUEUE_TASKS_MAX) {
-    console.log('inserting actions to database', { apiKey: domain.apiKey, count: actions.length });
+    console.log('inserting actions to database', {apiKey: domain.apiKey, count: actions.length});
 
     const copyOfActions = _.cloneDeep(actions);
     actions.splice(0, actions.length);
@@ -419,7 +419,7 @@ const pullDataFromHubspot = async () => {
     try {
       await refreshAccessToken(domain, account.hubId);
     } catch (err) {
-      console.log(err, { apiKey: domain.apiKey, metadata: { operation: 'refreshAccessToken' } });
+      console.log(err, {apiKey: domain.apiKey, metadata: {operation: 'refreshAccessToken'}});
     }
 
     const actions = [];
@@ -429,21 +429,21 @@ const pullDataFromHubspot = async () => {
       await processContacts(domain, account.hubId, q);
       console.log('process contacts');
     } catch (err) {
-      console.log(err, { apiKey: domain.apiKey, metadata: { operation: 'processContacts', hubId: account.hubId } });
+      console.log(err, {apiKey: domain.apiKey, metadata: {operation: 'processContacts', hubId: account.hubId}});
     }
 
     try {
       await processCompanies(domain, account.hubId, q);
       console.log('process companies');
     } catch (err) {
-      console.log(err, { apiKey: domain.apiKey, metadata: { operation: 'processCompanies', hubId: account.hubId } });
+      console.log(err, {apiKey: domain.apiKey, metadata: {operation: 'processCompanies', hubId: account.hubId}});
     }
 
     try {
       console.log('Meetings: START processing meetings');
       await processMeetings(domain, account.hubId, q);
     } catch (err) {
-      console.log(err, { apiKey: domain.apiKey, metadata: { operation: 'processMeetings', hubId: account.hubId } });
+      console.log(err, {apiKey: domain.apiKey, metadata: {operation: 'processMeetings', hubId: account.hubId}});
     }
     console.log('Meetings: END processing meetings');
 
@@ -451,7 +451,7 @@ const pullDataFromHubspot = async () => {
       await drainQueue(domain, actions, q);
       console.log('drain queue');
     } catch (err) {
-      console.log(err, { apiKey: domain.apiKey, metadata: { operation: 'drainQueue', hubId: account.hubId } });
+      console.log(err, {apiKey: domain.apiKey, metadata: {operation: 'drainQueue', hubId: account.hubId}});
     }
 
     await saveDomain(domain);
