@@ -22,7 +22,12 @@ const filterNullValuesFromObject = object =>
     })
   );
 
-const normalizePropertyName = key => key.toLowerCase().replace(/__c$/, '').replace(/^_+|_+$/g, '').replace(/_+/g, '_');
+const normalizePropertyName = key =>
+  key
+    .toLowerCase()
+    .replace(/__c$/, '')
+    .replace(/^_+|_+$/g, '')
+    .replace(/_+/g, '_');
 
 const goal = actions => {
   // this is where the data will be written to the database

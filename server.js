@@ -4,10 +4,7 @@ const express = require('express');
 const http = require('http');
 const moment = require('moment');
 
-const {
-  PORT,
-  NODE_ENV
-} = process.env;
+const {PORT, NODE_ENV} = process.env;
 
 // server setup
 const app = express();

@@ -6,7 +6,7 @@ module.exports = {
     node: true,
     mocha: true
   },
-  extends: 'standard',
+  extends: ['standard', 'prettier'],
   globals: {
     Atomics: 'readonly',
     SharedArrayBuffer: 'readonly',
@@ -17,17 +17,18 @@ module.exports = {
     ecmaVersion: 11,
     requireConfigFile: false
   },
-  plugins: ['eslint-plugin-prefer-arrow'],
+  plugins: ['eslint-plugin-prefer-arrow', 'prettier'],
   rules: {
     semi: [2, 'always'],
     'no-warning-comments': [0, {terms: ['todo', 'fixme', 'xxx', 'debug'], location: 'start'}],
     'prefer-arrow/prefer-arrow-functions': [2, {singleReturnOnly: true, disallowPrototype: true}],
     'object-curly-newline': ['error', {multiline: true}],
-    'object-curly-spacing': ['error', 'never'],
+    'object-curly-spacing': ['off'],
     'arrow-parens': [2, 'as-needed'],
     'arrow-body-style': [2, 'as-needed'],
-    'operator-linebreak': [2, 'after'],
-    indent: ['error', 2, {ignoredNodes: ['TemplateLiteral > *'], SwitchCase: 1}],
-    'no-unused-expressions': 0
+    'operator-linebreak': 'off',
+    indent: ['off'],
+    'no-unused-expressions': 0,
+    'prettier/prettier': 'error'
   }
 };

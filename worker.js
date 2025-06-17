@@ -23,14 +23,14 @@ const OperatorEnum = {
 };
 
 const generateLastModifiedDateFilter = (date, nowDate, propertyName = 'hs_lastmodifieddate') => {
-  const lastModifiedDateFilter = date ?
-    {
-      filters: [
-        {propertyName, operator: OperatorEnum.GreaterOrEqual, value: `${date.valueOf()}`},
-        {propertyName, operator: OperatorEnum.LessOrEqual, value: `${nowDate.valueOf()}`}
-      ]
-    } :
-    {};
+  const lastModifiedDateFilter = date
+    ? {
+        filters: [
+          {propertyName, operator: OperatorEnum.GreaterOrEqual, value: `${date.valueOf()}`},
+          {propertyName, operator: OperatorEnum.LessOrEqual, value: `${nowDate.valueOf()}`}
+        ]
+      }
+    : {};
 
   return lastModifiedDateFilter;
 };
@@ -134,7 +134,7 @@ const processCompanies = async (domain, hubId, q) => {
         }
       };
 
-      const isCreated = !lastPulledDate || (new Date(company.createdAt) > lastPulledDate);
+      const isCreated = !lastPulledDate || new Date(company.createdAt) > lastPulledDate;
 
       q.push({
         actionName: isCreated ? 'Company Created' : 'Company Updated',
@@ -216,18 +216,27 @@ const processContacts = async (domain, hubId, q) => {
 
     // contact to company association
     const contactsToAssociate = contactIds;
-    const companyAssociationsResults = (await (await hubspotClient.apiRequest({
-      method: 'post',
-      path: '/crm/v3/associations/CONTACTS/COMPANIES/batch/read',
-      body: {inputs: contactsToAssociate.map(contactId => ({id: contactId}))}
-    })).json())?.results || [];
+    const companyAssociationsResults =
+      (
+        await (
+          await hubspotClient.apiRequest({
+            method: 'post',
+            path: '/crm/v3/associations/CONTACTS/COMPANIES/batch/read',
+            body: {inputs: contactsToAssociate.map(contactId => ({id: contactId}))}
+          })
+        ).json()
+      )?.results || [];
 
-    const companyAssociations = Object.fromEntries(companyAssociationsResults.map(a => {
-      if (a.from) {
-        contactsToAssociate.splice(contactsToAssociate.indexOf(a.from.id), 1);
-        return [a.from.id, a.to[0].id];
-      } else return false;
-    }).filter(x => x));
+    const companyAssociations = Object.fromEntries(
+      companyAssociationsResults
+        .map(a => {
+          if (a.from) {
+            contactsToAssociate.splice(contactsToAssociate.indexOf(a.from.id), 1);
+            return [a.from.id, a.to[0].id];
+          } else return false;
+        })
+        .filter(x => x)
+    );
 
     data.forEach(contact => {
       if (!contact.properties || !contact.properties.email) return;
@@ -290,12 +299,7 @@ const processMeetings = async (domain, hubId, q) => {
     const searchObject = {
       filterGroups: [lastModifiedDateFilter],
       sorts: [{propertyName: 'hs_lastmodifieddate', direction: 'ASCENDING'}],
-      properties: [
-        'hs_meeting_title',
-        'hs_timestamp',
-        'createdate',
-        'lastmodifieddate'
-      ],
+      properties: ['hs_meeting_title', 'hs_timestamp', 'createdate', 'lastmodifieddate'],
       limit: LIMIT,
       after: offsetObject.after
     };
@@ -320,26 +324,40 @@ const processMeetings = async (domain, hubId, q) => {
 
     const meetingIds = data.map(meeting => meeting.id);
 
-    const meetingToContactsAssociationsResults = (await (await hubspotClient.apiRequest({
-      method: 'post',
-      path: '/crm/v3/associations/MEETINGS/CONTACTS/batch/read',
-      body: {inputs: meetingIds.map(meetingId => ({id: meetingId}))}
-    })).json())?.results || [];
+    const meetingToContactsAssociationsResults =
+      (
+        await (
+          await hubspotClient.apiRequest({
+            method: 'post',
+            path: '/crm/v3/associations/MEETINGS/CONTACTS/batch/read',
+            body: {inputs: meetingIds.map(meetingId => ({id: meetingId}))}
+          })
+        ).json()
+      )?.results || [];
 
-    const meetingToContactsAssociations = Object.fromEntries(meetingToContactsAssociationsResults.map(a => {
-      if (a.from) {
-        meetingIds.splice(meetingIds.indexOf(a.from.id), 1);
-        return [a.from.id, a.to[0].id];
-      } else return false;
-    }).filter(x => x));
+    const meetingToContactsAssociations = Object.fromEntries(
+      meetingToContactsAssociationsResults
+        .map(a => {
+          if (a.from) {
+            meetingIds.splice(meetingIds.indexOf(a.from.id), 1);
+            return [a.from.id, a.to[0].id];
+          } else return false;
+        })
+        .filter(x => x)
+    );
 
     const contactIds = Array.from(new Set(Object.values(meetingToContactsAssociations)));
 
-    const contactsResults = (await (await hubspotClient.apiRequest({
-      method: 'post',
-      path: '/crm/v3/objects/contacts/batch/read',
-      body: {inputs: contactIds.map(id => ({id}))}
-    })).json())?.results || [];
+    const contactsResults =
+      (
+        await (
+          await hubspotClient.apiRequest({
+            method: 'post',
+            path: '/crm/v3/objects/contacts/batch/read',
+            body: {inputs: contactIds.map(id => ({id}))}
+          })
+        ).json()
+      )?.results || [];
 
     const contactIdToEmailMap = Object.fromEntries(
       contactsResults.map(contact => [contact.id, contact.properties?.email])
@@ -383,20 +401,21 @@ const processMeetings = async (domain, hubId, q) => {
   return true;
 };
 
-const createQueue = (domain, actions) => queue(async (action, callback) => {
-  actions.push(action);
+const createQueue = (domain, actions) =>
+  queue(async (action, callback) => {
+    actions.push(action);
 
-  if (actions.length > QUEUE_TASKS_MAX) {
-    console.log('inserting actions to database', {apiKey: domain.apiKey, count: actions.length});
+    if (actions.length > QUEUE_TASKS_MAX) {
+      console.log('inserting actions to database', {apiKey: domain.apiKey, count: actions.length});
 
-    const copyOfActions = _.cloneDeep(actions);
-    actions.splice(0, actions.length);
+      const copyOfActions = _.cloneDeep(actions);
+      actions.splice(0, actions.length);
 
-    goal(copyOfActions);
-  }
+      goal(copyOfActions);
+    }
 
-  callback();
-}, QUEUE_CONCURRENCY);
+    callback();
+  }, QUEUE_CONCURRENCY);
 
 const drainQueue = async (domain, actions, q) => {
   if (q.length() > 0) await q.drain();

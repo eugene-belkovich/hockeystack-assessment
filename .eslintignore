@@ -1,0 +1,10 @@
+*.md
+
+.github
+.husky
+.idea
+.vscode
+chart/*
+package.json
+package-lock.json
+node_modules
