@@ -1,6 +1,6 @@
 const ProccesorService = require('./services/proccesor.service');
 const DomainRepository = require('./repository/domain.repository');
-const Domain = require('./model/Domain');
+const Domain = require('./model/Domain.model');
 const HubspotService = require('./services/hubspot.service');
 const QueueService = require('./services/queue.service');
 

@@ -21,7 +21,7 @@ const initializeApp = async () => {
 
     console.log('Connected to database successfully');
 
-    require('./model/Domain');
+    require('./model/Domain.model');
 
     console.log('Starting worker...');
     require('./worker')();
