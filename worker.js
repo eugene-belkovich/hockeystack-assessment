@@ -483,7 +483,7 @@ const pullDataFromHubspot = async () => {
 
     await saveDomain(domain);
 
-    console.log('Account: START processing account', {apiKey: domain.apiKey, hubId: account.hubId});
+    console.log('Account: END processing account', {apiKey: domain.apiKey, hubId: account.hubId});
   }
 
   console.log('Worker: END pulling data from HubSpot');
