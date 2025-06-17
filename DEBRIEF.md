@@ -5,6 +5,7 @@ SECURITY:
 PERFORMANCE:
 - make queue as sigleton, not pass accross param, use as service 
 - run processContacts, processCompanies, processMeetings in parallel
+- skip saving of entities if exist in db (or cache)
 
 STRUCTURE:
 - moved pagination logic to a separate service/function
