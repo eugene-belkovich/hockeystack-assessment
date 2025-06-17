@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "nodemon app.js",
     "debug": "nodemon --inspect=9229 app.js",
+    "lint": "eslint ./",
+    "lint:fix": "eslint --fix ./",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "HockeyStack",
@@ -24,7 +26,13 @@
     "path": "^0.12.7"
   },
   "devDependencies": {
+    "@babel/eslint-parser": "^7.27.5",
     "eslint": "^8.34.0",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-n": "^16.6.2",
+    "eslint-plugin-prefer-arrow": "^1.2.3",
+    "eslint-plugin-promise": "^6.6.0",
     "nodemon": "^3.0.1"
   }
 }
