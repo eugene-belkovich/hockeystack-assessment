@@ -2,7 +2,7 @@ const hubspot = require('@hubspot/api-client');
 const {queue} = require('async');
 const _ = require('lodash');
 
-const {filterNullValuesFromObject, goal} = require('./utils');
+const {filterNullValuesFromObject} = require('./utils');
 const DomainRepository = require('./domain.repository');
 const Domain = require('./Domain');
 const {OperatorEnum, EntityTypeEnum} = require('./enum');
@@ -401,7 +401,7 @@ const processMeetings = async (domain, hubId, q) => {
   return true;
 };
 
-const createQueue = (domain, actions) =>
+const createQueue = (domain, actions, hubId) =>
   queue(async (action, callback) => {
     actions.push(action);
 
@@ -411,18 +411,18 @@ const createQueue = (domain, actions) =>
       const copyOfActions = _.cloneDeep(actions);
       actions.splice(0, actions.length);
 
-      goal(copyOfActions);
+      await DomainRepository.saveActions(hubId, copyOfActions);
       console.log('Actions: END inserting actions to database', {apiKey: domain.apiKey, count: actions.length});
     }
 
     callback();
   }, QUEUE_CONCURRENCY);
 
-const drainQueue = async (domain, actions, q) => {
+const drainQueue = async (domain, actions, q, hubId) => {
   if (q.length() > 0) await q.drain();
 
   if (actions.length > 0) {
-    goal(actions);
+    await DomainRepository.saveActions(hubId, actions);
   }
 
   return true;
@@ -443,7 +443,7 @@ const pullDataFromHubspot = async () => {
     }
 
     const actions = [];
-    const q = createQueue(domain, actions);
+    const q = createQueue(domain, actions, account.hubId);
 
     try {
       console.log('Contacts: START process contacts');
@@ -471,7 +471,7 @@ const pullDataFromHubspot = async () => {
 
     try {
       console.log('Queue: START drain queue');
-      await drainQueue(domain, actions, q);
+      await drainQueue(domain, actions, q, account.hubId);
     } catch (err) {
       console.log(err, {apiKey: domain.apiKey, metadata: {operation: 'drainQueue', hubId: account.hubId}});
     }
