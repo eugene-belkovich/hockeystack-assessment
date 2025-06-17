@@ -17,6 +17,7 @@ const DisallowedValuesUnion = [
   'not provided',
   'unknown',
   'undefined',
+  '!$record',
   'n/a'
 ];
 

@@ -7,7 +7,6 @@ const filterNullValuesFromObject = object =>
       if (typeof value === 'string') {
         const lower = value.toLowerCase();
         if (DisallowedValuesUnion.includes(lower)) return false;
-        if (lower.includes('!$record')) return false;
       }
       return true;
     })
