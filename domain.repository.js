@@ -3,11 +3,15 @@ const {EntityTypeEnum} = require('./enum');
 
 const saveDomain = async domain => {
   try {
-    domain.markModified('integrations.hubspot.accounts');
+    const update = domain.toObject();
+    delete update._id;
 
-    const result = await domain.save();
+    const result = await Domain.findOneAndUpdate({}, update, {new: true, upsert: false});
 
-    console.log('Domain saved successfully');
+    if (!result) {
+      throw new Error(`Domain with ID ${domain._id} not found`);
+    }
+
     return result;
   } catch (err) {
     console.error('DomainRepository: saveDomain failed:', err);
