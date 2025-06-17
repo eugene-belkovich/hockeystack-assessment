@@ -1,13 +1,28 @@
 const Domain = require('./Domain');
 const {EntityTypeEnum} = require('./enum');
 
+const saveDomain = async domain => {
+  try {
+    domain.markModified('integrations.hubspot.accounts');
+
+    const result = await domain.save();
+
+    console.log('Domain saved successfully');
+    return result;
+  } catch (err) {
+    console.error('DomainRepository: saveDomain failed:', err);
+    throw err;
+  }
+};
+
 const saveActions = async (hubId, actions) => {
   if (!Array.isArray(actions) || actions.length === 0) return;
 
   try {
     const result = await Domain.updateOne(
       {'integrations.hubspot.accounts.hubId': hubId},
-      {$push: {'integrations.hubspot.accounts.$[elem].actions': {$each: actions}}}
+      {$push: {'integrations.hubspot.accounts.$[elem].actions': {$each: actions}}},
+      {arrayFilters: [{'elem.hubId': hubId}]}
     );
 
     if (result?.matchedCount === 0) {
@@ -41,4 +56,4 @@ const saveLastPulledDate = async (hubId, entityType, lastPulledDate) => {
   }
 };
 
-module.exports = {saveLastPulledDate, saveActions};
+module.exports = {saveLastPulledDate, saveActions, saveDomain};

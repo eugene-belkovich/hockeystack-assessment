@@ -32,14 +32,6 @@ const generateLastModifiedDateFilter = (date, nowDate, propertyName = 'hs_lastmo
   return lastModifiedDateFilter;
 };
 
-const saveDomain = async domain => {
-  // disable this for testing purposes
-  return;
-
-  domain.markModified('integrations.hubspot.accounts');
-  await domain.save();
-};
-
 /**
  * Get access token from HubSpot
  */
@@ -477,7 +469,7 @@ const pullDataFromHubspot = async () => {
     }
     console.log('Queue: END drain queue');
 
-    await saveDomain(domain);
+    await DomainRepository.saveDomain(domain);
 
     console.log('Account: END processing account', {apiKey: domain.apiKey, hubId: account.hubId});
   }
