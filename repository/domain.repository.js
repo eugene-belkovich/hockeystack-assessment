@@ -1,5 +1,5 @@
-const Domain = require('./Domain');
-const {EntityTypeEnum} = require('./enum');
+const Domain = require('../model/Domain');
+const {EntityTypeEnum} = require('../enum');
 
 const saveDomain = async domain => {
   try {

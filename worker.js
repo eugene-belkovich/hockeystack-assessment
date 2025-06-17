@@ -1,40 +1,8 @@
-const {queue} = require('async');
-const _ = require('lodash');
-
-const ProccesorService = require('./proccesor.service');
-const DomainRepository = require('./domain.repository');
-const Domain = require('./Domain');
-const HubspotService = require('./hubspot.service');
-
-const QUEUE_TASKS_MAX = 2000;
-const QUEUE_CONCURRENCY = 100;
-
-const createQueue = (domain, actions, hubId) =>
-  queue(async (action, callback) => {
-    actions.push(action);
-
-    if (actions.length > QUEUE_TASKS_MAX) {
-      console.log('Actions: START inserting actions to database', {apiKey: domain.apiKey, count: actions.length});
-
-      const copyOfActions = _.cloneDeep(actions);
-      actions.splice(0, actions.length);
-
-      await DomainRepository.saveActions(hubId, copyOfActions);
-      console.log('Actions: END inserting actions to database', {apiKey: domain.apiKey, count: actions.length});
-    }
-
-    callback();
-  }, QUEUE_CONCURRENCY);
-
-const drainQueue = async (domain, actions, q, hubId) => {
-  if (q.length() > 0) await q.drain();
-
-  if (actions.length > 0) {
-    await DomainRepository.saveActions(hubId, actions);
-  }
-
-  return true;
-};
+const ProccesorService = require('./services/proccesor.service');
+const DomainRepository = require('./repository/domain.repository');
+const Domain = require('./model/Domain');
+const HubspotService = require('./services/hubspot.service');
+const QueueService = require('./services/queue.service');
 
 const runInParallel = async jobs => {
   try {
@@ -59,7 +27,7 @@ const pullDataFromHubspot = async () => {
     }
 
     const actions = [];
-    const q = createQueue(domain, actions, account.hubId);
+    const q = QueueService.createQueue(domain, actions, account.hubId);
 
     await runInParallel([
       ProccesorService.processContacts(domain, account.hubId, q),
@@ -69,7 +37,7 @@ const pullDataFromHubspot = async () => {
 
     try {
       console.log('Queue: START drain queue');
-      await drainQueue(domain, actions, q, account.hubId);
+      await QueueService.drainQueue(domain, actions, q, account.hubId);
     } catch (err) {
       console.log(err, {apiKey: domain.apiKey, metadata: {operation: 'drainQueue', hubId: account.hubId}});
     }

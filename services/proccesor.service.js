@@ -1,8 +1,8 @@
-const {filterNullValuesFromObject} = require('./utils');
-const {EntityTypeEnum, OperatorEnum} = require('./enum');
+const {filterNullValuesFromObject} = require('../utils');
+const {EntityTypeEnum, OperatorEnum} = require('../enum');
 
 const {retry} = require('./retry.service');
-const DomainRepository = require('./domain.repository');
+const DomainRepository = require('../repository/domain.repository');
 const HubspotService = require('./hubspot.service');
 
 const LIMIT = 100;
