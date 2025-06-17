@@ -6,7 +6,15 @@ const { filterNullValuesFromObject, goal } = require('./utils');
 const Domain = require('./Domain');
 
 const hubspotClient = new hubspot.Client({ accessToken: '' });
-const propertyPrefix = 'hubspot__';
+
+const LIMIT = 100;
+const TOTAL_MIN = 0;
+const TOTAL_MAX = 9900;
+const TRY_COUNT_MAX = 4;
+const TIMEOUT_5_SEC = 5000;
+const QUEUE_TASKS_MAX = 2000;
+const QUEUE_CONCURRENCY = 100000000;
+
 let expirationDate;
 
 const OperatorEnum = {
@@ -70,7 +78,6 @@ const processCompanies = async (domain, hubId, q) => {
 
   let hasMore = true;
   const offsetObject = {};
-  const limit = 100;
 
   while (hasMore) {
     const lastModifiedDate = offsetObject.lastModifiedDate || lastPulledDate;
@@ -88,14 +95,14 @@ const processCompanies = async (domain, hubId, q) => {
         'numberofemployees',
         'hs_lead_status'
       ],
-      limit,
+      limit: LIMIT,
       after: offsetObject.after
     };
 
     let searchResult = {};
 
     let tryCount = 0;
-    while (tryCount <= 4) {
+    while (tryCount <= TRY_COUNT_MAX) {
       try {
         searchResult = await hubspotClient.crm.companies.searchApi.doSearch(searchObject);
         break;
@@ -104,7 +111,7 @@ const processCompanies = async (domain, hubId, q) => {
 
         if (new Date() > expirationDate) await refreshAccessToken(domain, hubId);
 
-        await new Promise((resolve, reject) => setTimeout(resolve, 5000 * Math.pow(2, tryCount)));
+        await new Promise((resolve, reject) => setTimeout(resolve, TIMEOUT_5_SEC * Math.pow(2, tryCount)));
       }
     }
 
@@ -139,8 +146,8 @@ const processCompanies = async (domain, hubId, q) => {
     if (!offsetObject?.after) {
       hasMore = false;
       break;
-    } else if (offsetObject?.after >= 9900) {
-      offsetObject.after = 0;
+    } else if (offsetObject?.after >= TOTAL_MAX) {
+      offsetObject.after = TOTAL_MIN;
       offsetObject.lastModifiedDate = new Date(data[data.length - 1].updatedAt).valueOf();
     }
   }
@@ -161,7 +168,6 @@ const processContacts = async (domain, hubId, q) => {
 
   let hasMore = true;
   const offsetObject = {};
-  const limit = 100;
 
   while (hasMore) {
     const lastModifiedDate = offsetObject.lastModifiedDate || lastPulledDate;
@@ -179,14 +185,14 @@ const processContacts = async (domain, hubId, q) => {
         'hs_analytics_source',
         'hs_latest_source'
       ],
-      limit,
+      limit: LIMIT,
       after: offsetObject.after
     };
 
     let searchResult = {};
 
     let tryCount = 0;
-    while (tryCount <= 4) {
+    while (tryCount <= TRY_COUNT_MAX) {
       try {
         searchResult = await hubspotClient.crm.contacts.searchApi.doSearch(searchObject);
         break;
@@ -195,7 +201,7 @@ const processContacts = async (domain, hubId, q) => {
 
         if (new Date() > expirationDate) await refreshAccessToken(domain, hubId);
 
-        await new Promise((resolve, reject) => setTimeout(resolve, 5000 * Math.pow(2, tryCount)));
+        await new Promise((resolve, reject) => setTimeout(resolve, TIMEOUT_5_SEC * Math.pow(2, tryCount)));
       }
     }
 
@@ -255,8 +261,8 @@ const processContacts = async (domain, hubId, q) => {
     if (!offsetObject?.after) {
       hasMore = false;
       break;
-    } else if (offsetObject?.after >= 9900) {
-      offsetObject.after = 0;
+    } else if (offsetObject?.after >= TOTAL_MAX) {
+      offsetObject.after = TOTAL_MIN;
       offsetObject.lastModifiedDate = new Date(data[data.length - 1].updatedAt).valueOf();
     }
   }
@@ -277,7 +283,6 @@ const processMeetings = async (domain, hubId, q) => {
 
   let hasMore = true;
   const offsetObject = {};
-  const limit = 100;
 
   while (hasMore) {
     const lastModifiedDate = offsetObject.lastModifiedDate || lastPulledDate;
@@ -291,20 +296,20 @@ const processMeetings = async (domain, hubId, q) => {
         'createdate',
         'lastmodifieddate'
       ],
-      limit,
+      limit: LIMIT,
       after: offsetObject.after
     };
 
     let searchResult = {};
     let tryCount = 0;
-    while (tryCount <= 4) {
+    while (tryCount <= TRY_COUNT_MAX) {
       try {
         searchResult = await hubspotClient.crm.objects.searchApi.doSearch('meetings', searchObject);
         break;
       } catch (err) {
         tryCount++;
         if (new Date() > expirationDate) await refreshAccessToken(domain, hubId);
-        await new Promise(resolve => setTimeout(resolve, 5000 * Math.pow(2, tryCount)));
+        await new Promise(resolve => setTimeout(resolve, TIMEOUT_5_SEC * Math.pow(2, tryCount)));
       }
     }
     if (!searchResult) throw new Error('Failed to fetch meetings for the 4th time. Aborting.');
@@ -367,8 +372,8 @@ const processMeetings = async (domain, hubId, q) => {
     if (!offsetObject?.after) {
       hasMore = false;
       break;
-    } else if (offsetObject?.after >= 9900) {
-      offsetObject.after = 0;
+    } else if (offsetObject?.after >= TOTAL_MAX) {
+      offsetObject.after = TOTAL_MIN;
       offsetObject.lastModifiedDate = new Date(data[data.length - 1].updatedAt).valueOf();
     }
   }
@@ -381,7 +386,7 @@ const processMeetings = async (domain, hubId, q) => {
 const createQueue = (domain, actions) => queue(async (action, callback) => {
   actions.push(action);
 
-  if (actions.length > 2000) {
+  if (actions.length > QUEUE_TASKS_MAX) {
     console.log('inserting actions to database', { apiKey: domain.apiKey, count: actions.length });
 
     const copyOfActions = _.cloneDeep(actions);
@@ -391,7 +396,7 @@ const createQueue = (domain, actions) => queue(async (action, callback) => {
   }
 
   callback();
-}, 100000000);
+}, QUEUE_CONCURRENCY);
 
 const drainQueue = async (domain, actions, q) => {
   if (q.length() > 0) await q.drain();
