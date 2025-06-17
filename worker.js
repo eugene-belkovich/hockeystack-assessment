@@ -17,7 +17,7 @@ const TIMEOUT_5_SEC = 5000;
 const QUEUE_TASKS_MAX = 2000;
 const QUEUE_CONCURRENCY = 100000000;
 
-let expirationDate;
+const tokenExpirationMap = new Map();
 
 const generateLastModifiedDateFilter = (date, nowDate, propertyName = 'hs_lastmodifieddate') => {
   const lastModifiedDateFilter = date
@@ -46,7 +46,9 @@ const refreshAccessToken = async (domain, hubId) => {
       const body = result.body ? result.body : result;
 
       const newAccessToken = body.accessToken;
-      expirationDate = new Date(body.expiresIn * 1000 + new Date().getTime());
+      const expirationDate = new Date(body.expiresIn * 1000 + new Date().getTime());
+
+      tokenExpirationMap.set(hubId, expirationDate);
 
       hubspotClient.setAccessToken(newAccessToken);
       if (newAccessToken !== accessToken) {
@@ -99,9 +101,9 @@ const processCompanies = async (domain, hubId, q) => {
       } catch (err) {
         tryCount++;
 
-        if (new Date() > expirationDate) await refreshAccessToken(domain, hubId);
+        if (new Date() > (tokenExpirationMap.get(hubId) || new Date(0))) await refreshAccessToken(domain, hubId);
 
-        await new Promise((resolve, reject) => setTimeout(resolve, TIMEOUT_5_SEC * Math.pow(2, tryCount)));
+        await new Promise(resolve => setTimeout(resolve, TIMEOUT_5_SEC * Math.pow(2, tryCount)));
       }
     }
     console.log('Company: END fetch company batch');
@@ -189,9 +191,9 @@ const processContacts = async (domain, hubId, q) => {
       } catch (err) {
         tryCount++;
 
-        if (new Date() > expirationDate) await refreshAccessToken(domain, hubId);
+        if (new Date() > (tokenExpirationMap.get(hubId) || new Date(0))) await refreshAccessToken(domain, hubId);
 
-        await new Promise((resolve, reject) => setTimeout(resolve, TIMEOUT_5_SEC * Math.pow(2, tryCount)));
+        await new Promise(resolve => setTimeout(resolve, TIMEOUT_5_SEC * Math.pow(2, tryCount)));
       }
     }
     console.log('Contact: END fetch contact batch');
@@ -305,7 +307,7 @@ const processMeetings = async (domain, hubId, q) => {
         break;
       } catch (err) {
         tryCount++;
-        if (new Date() > expirationDate) await refreshAccessToken(domain, hubId);
+        if (new Date() > (tokenExpirationMap.get(hubId) || new Date(0))) await refreshAccessToken(domain, hubId);
         await new Promise(resolve => setTimeout(resolve, TIMEOUT_5_SEC * Math.pow(2, tryCount)));
       }
     }
