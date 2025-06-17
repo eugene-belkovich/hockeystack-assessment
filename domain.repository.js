@@ -10,8 +10,12 @@ const saveActions = async (hubId, actions) => {
       {$push: {'integrations.hubspot.accounts.$[elem].actions': {$each: actions}}}
     );
 
-    if (result.matchedCount === 0) {
-      console.warn(`Update did not match any documents for hubId: ${hubId}`);
+    if (result?.matchedCount === 0) {
+      throw new Error(`No matching domain/account for hubId=${hubId}`);
+    }
+
+    if (result.acknowledged !== true) {
+      console.error('Error: actions not saved, acknowledged is false');
     }
 
     return result;
