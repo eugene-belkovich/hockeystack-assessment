@@ -1,13 +1,4 @@
-const disallowedValues = [
-  '[not provided]',
-  'placeholder',
-  '[[unknown]]',
-  'not set',
-  'not provided',
-  'unknown',
-  'undefined',
-  'n/a'
-];
+const {DisallowedValuesUnion} = require('./enum');
 
 const filterNullValuesFromObject = object =>
   Object.fromEntries(
@@ -15,7 +6,7 @@ const filterNullValuesFromObject = object =>
       if (value === null || value === '' || typeof value === 'undefined') return false;
       if (typeof value === 'string') {
         const lower = value.toLowerCase();
-        if (disallowedValues.includes(lower)) return false;
+        if (DisallowedValuesUnion.includes(lower)) return false;
         if (lower.includes('!$record')) return false;
       }
       return true;

@@ -9,4 +9,15 @@ const EntityTypeEnum = {
   Meetings: 'meetings'
 };
 
-module.exports = {OperatorEnum, EntityTypeEnum};
+const DisallowedValuesUnion = [
+  '[not provided]',
+  'placeholder',
+  '[[unknown]]',
+  'not set',
+  'not provided',
+  'unknown',
+  'undefined',
+  'n/a'
+];
+
+module.exports = {OperatorEnum, EntityTypeEnum, DisallowedValuesUnion};
