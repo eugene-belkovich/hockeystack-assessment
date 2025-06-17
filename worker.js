@@ -104,6 +104,7 @@ const processCompanies = async (domain, hubId, q) => {
     let tryCount = 0;
     while (tryCount <= TRY_COUNT_MAX) {
       try {
+        console.log('Company: START fetch company batch');
         searchResult = await hubspotClient.crm.companies.searchApi.doSearch(searchObject);
         break;
       } catch (err) {
@@ -114,13 +115,13 @@ const processCompanies = async (domain, hubId, q) => {
         await new Promise((resolve, reject) => setTimeout(resolve, TIMEOUT_5_SEC * Math.pow(2, tryCount)));
       }
     }
+    console.log('Company: END fetch company batch');
 
     if (!searchResult) throw new Error('Failed to fetch companies for the 4th time. Aborting.');
 
     const data = searchResult?.results || [];
-    offsetObject.after = parseInt(searchResult?.paging?.next?.after);
 
-    console.log('fetch company batch');
+    offsetObject.after = parseInt(searchResult?.paging?.next?.after);
 
     data.forEach(company => {
       if (!company.properties) return;
@@ -194,6 +195,7 @@ const processContacts = async (domain, hubId, q) => {
     let tryCount = 0;
     while (tryCount <= TRY_COUNT_MAX) {
       try {
+        console.log('Contact: START fetch contact batch');
         searchResult = await hubspotClient.crm.contacts.searchApi.doSearch(searchObject);
         break;
       } catch (err) {
@@ -204,12 +206,11 @@ const processContacts = async (domain, hubId, q) => {
         await new Promise((resolve, reject) => setTimeout(resolve, TIMEOUT_5_SEC * Math.pow(2, tryCount)));
       }
     }
+    console.log('Contact: END fetch contact batch');
 
     if (!searchResult) throw new Error('Failed to fetch contacts for the 4th time. Aborting.');
 
     const data = searchResult.results || [];
-
-    console.log('fetch contact batch');
 
     offsetObject.after = parseInt(searchResult.paging?.next?.after);
     const contactIds = data.map(contact => contact.id);
@@ -286,7 +287,7 @@ const processContacts = async (domain, hubId, q) => {
  */
 const processMeetings = async (domain, hubId, q) => {
   const account = domain.integrations.hubspot.accounts.find(account => account.hubId === hubId);
-  const lastPulledDate = new Date(account?.lastPulledDates?.meetings || 0);
+  const lastPulledDate = new Date(account.lastPulledDates.meetings);
 
   const now = new Date();
 
@@ -308,6 +309,8 @@ const processMeetings = async (domain, hubId, q) => {
     let tryCount = 0;
     while (tryCount <= TRY_COUNT_MAX) {
       try {
+        console.log('Meeting: START fetch contact batch');
+
         searchResult = await hubspotClient.crm.objects.searchApi.doSearch('meetings', searchObject);
         break;
       } catch (err) {
@@ -316,11 +319,12 @@ const processMeetings = async (domain, hubId, q) => {
         await new Promise(resolve => setTimeout(resolve, TIMEOUT_5_SEC * Math.pow(2, tryCount)));
       }
     }
+    console.log('Meeting: END fetch contact batch');
+
     if (!searchResult) throw new Error('Failed to fetch meetings for the 4th time. Aborting.');
     const data = searchResult.results || [];
 
     offsetObject.after = parseInt(searchResult.paging?.next?.after);
-    console.log('fetch meeting batch');
 
     const meetingIds = data.map(meeting => meeting.id);
 
@@ -406,12 +410,13 @@ const createQueue = (domain, actions) =>
     actions.push(action);
 
     if (actions.length > QUEUE_TASKS_MAX) {
-      console.log('inserting actions to database', {apiKey: domain.apiKey, count: actions.length});
+      console.log('Actions: START inserting actions to database', {apiKey: domain.apiKey, count: actions.length});
 
       const copyOfActions = _.cloneDeep(actions);
       actions.splice(0, actions.length);
 
       goal(copyOfActions);
+      console.log('Actions: END inserting actions to database', {apiKey: domain.apiKey, count: actions.length});
     }
 
     callback();
@@ -428,12 +433,12 @@ const drainQueue = async (domain, actions, q) => {
 };
 
 const pullDataFromHubspot = async () => {
-  console.log('start pulling data from HubSpot');
+  console.log('Worker: START pulling data from HubSpot');
 
   const domain = await Domain.findOne({});
 
   for (const account of domain.integrations.hubspot.accounts) {
-    console.log('start processing account');
+    console.log('Account: START processing account', {apiKey: domain.apiKey, hubId: account.hubId});
 
     try {
       await refreshAccessToken(domain, account.hubId);
@@ -445,18 +450,20 @@ const pullDataFromHubspot = async () => {
     const q = createQueue(domain, actions);
 
     try {
+      console.log('Contacts: START process contacts');
       await processContacts(domain, account.hubId, q);
-      console.log('process contacts');
     } catch (err) {
       console.log(err, {apiKey: domain.apiKey, metadata: {operation: 'processContacts', hubId: account.hubId}});
     }
+    console.log('Contacts: END process contacts');
 
     try {
+      console.log('Companies: START process companies');
       await processCompanies(domain, account.hubId, q);
-      console.log('process companies');
     } catch (err) {
       console.log(err, {apiKey: domain.apiKey, metadata: {operation: 'processCompanies', hubId: account.hubId}});
     }
+    console.log('Companies: END process companies');
 
     try {
       console.log('Meetings: START processing meetings');
@@ -467,17 +474,19 @@ const pullDataFromHubspot = async () => {
     console.log('Meetings: END processing meetings');
 
     try {
+      console.log('Queue: START drain queue');
       await drainQueue(domain, actions, q);
-      console.log('drain queue');
     } catch (err) {
       console.log(err, {apiKey: domain.apiKey, metadata: {operation: 'drainQueue', hubId: account.hubId}});
     }
+    console.log('Queue: END drain queue');
 
     await saveDomain(domain);
 
-    console.log('finish processing account');
+    console.log('Account: START processing account', {apiKey: domain.apiKey, hubId: account.hubId});
   }
 
+  console.log('Worker: END pulling data from HubSpot');
   process.exit();
 };
 
