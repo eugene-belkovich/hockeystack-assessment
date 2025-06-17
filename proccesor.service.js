@@ -26,6 +26,8 @@ const generateLastModifiedDateFilter = (date, nowDate, propertyName = 'hs_lastmo
  * Get recently modified companies as 100 companies per page
  */
 const processCompanies = async (domain, hubId, q) => {
+  console.log('Companies: START process companies');
+
   const account = domain.integrations.hubspot.accounts.find(account => account.hubId === hubId);
   const lastPulledDate = new Date(account.lastPulledDates.companies);
   const now = new Date();
@@ -108,6 +110,7 @@ const processCompanies = async (domain, hubId, q) => {
 
   await DomainRepository.saveLastPulledDate(hubId, EntityTypeEnum.Companies, now);
 
+  console.log('Companies: END process companies');
   return true;
 };
 
@@ -115,6 +118,8 @@ const processCompanies = async (domain, hubId, q) => {
  * Get recently modified contacts as 100 contacts per page
  */
 const processContacts = async (domain, hubId, q) => {
+  console.log('Contacts: START process contacts');
+
   const account = domain.integrations.hubspot.accounts.find(account => account.hubId === hubId);
   const lastPulledDate = new Date(account.lastPulledDates.contacts);
   const now = new Date();
@@ -232,6 +237,7 @@ const processContacts = async (domain, hubId, q) => {
 
   await DomainRepository.saveLastPulledDate(hubId, EntityTypeEnum.Contacts, now);
 
+  console.log('Contacts: END process contacts');
   return true;
 };
 
@@ -239,6 +245,8 @@ const processContacts = async (domain, hubId, q) => {
  * Get recently modified meetings as 100 meetings per page
  */
 const processMeetings = async (domain, hubId, q) => {
+  console.log('Meetings: START processing meetings');
+
   const account = domain.integrations.hubspot.accounts.find(account => account.hubId === hubId);
   const lastPulledDate = new Date(account.lastPulledDates.meetings);
 
@@ -357,6 +365,7 @@ const processMeetings = async (domain, hubId, q) => {
 
   await DomainRepository.saveLastPulledDate(hubId, EntityTypeEnum.Meetings, now);
 
+  console.log('Meetings: END processing meetings');
   return true;
 };
 

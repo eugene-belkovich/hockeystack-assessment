@@ -36,6 +36,14 @@ const drainQueue = async (domain, actions, q, hubId) => {
   return true;
 };
 
+const runInParallel = async jobs => {
+  try {
+    await Promise.all(jobs);
+  } catch (err) {
+    console.log(err);
+  }
+};
+
 const pullDataFromHubspot = async () => {
   console.log('Worker: START pulling data from HubSpot');
 
@@ -53,29 +61,11 @@ const pullDataFromHubspot = async () => {
     const actions = [];
     const q = createQueue(domain, actions, account.hubId);
 
-    try {
-      console.log('Contacts: START process contacts');
-      await ProccesorService.processContacts(domain, account.hubId, q);
-    } catch (err) {
-      console.log(err, {apiKey: domain.apiKey, metadata: {operation: 'processContacts', hubId: account.hubId}});
-    }
-    console.log('Contacts: END process contacts');
-
-    try {
-      console.log('Companies: START process companies');
-      await ProccesorService.processCompanies(domain, account.hubId, q);
-    } catch (err) {
-      console.log(err, {apiKey: domain.apiKey, metadata: {operation: 'processCompanies', hubId: account.hubId}});
-    }
-    console.log('Companies: END process companies');
-
-    try {
-      console.log('Meetings: START processing meetings');
-      await ProccesorService.processMeetings(domain, account.hubId, q);
-    } catch (err) {
-      console.log(err, {apiKey: domain.apiKey, metadata: {operation: 'processMeetings', hubId: account.hubId}});
-    }
-    console.log('Meetings: END processing meetings');
+    await runInParallel([
+      ProccesorService.processContacts(domain, account.hubId, q),
+      ProccesorService.processCompanies(domain, account.hubId, q),
+      ProccesorService.processMeetings(domain, account.hubId, q)
+    ]);
 
     try {
       console.log('Queue: START drain queue');
