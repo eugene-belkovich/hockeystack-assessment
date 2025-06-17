@@ -3,7 +3,9 @@ const {queue} = require('async');
 const _ = require('lodash');
 
 const {filterNullValuesFromObject, goal} = require('./utils');
+const DomainRepository = require('./domain.repository');
 const Domain = require('./Domain');
+const {OperatorEnum, EntityTypeEnum} = require('./enum');
 
 const hubspotClient = new hubspot.Client({accessToken: ''});
 
@@ -16,11 +18,6 @@ const QUEUE_TASKS_MAX = 2000;
 const QUEUE_CONCURRENCY = 100000000;
 
 let expirationDate;
-
-const OperatorEnum = {
-  GreaterOrEqual: 'GTE',
-  LessOrEqual: 'LTE'
-};
 
 const generateLastModifiedDateFilter = (date, nowDate, propertyName = 'hs_lastmodifieddate') => {
   const lastModifiedDateFilter = date
@@ -153,8 +150,7 @@ const processCompanies = async (domain, hubId, q) => {
     }
   }
 
-  account.lastPulledDates.companies = now;
-  await saveDomain(domain);
+  await DomainRepository.saveLastPulledDate(hubId, EntityTypeEnum.Companies, now);
 
   return true;
 };
@@ -277,8 +273,8 @@ const processContacts = async (domain, hubId, q) => {
     }
   }
 
-  account.lastPulledDates.contacts = now;
-  await saveDomain(domain);
+  await DomainRepository.saveLastPulledDate(hubId, EntityTypeEnum.Contacts, now);
+
   return true;
 };
 
@@ -399,8 +395,8 @@ const processMeetings = async (domain, hubId, q) => {
       offsetObject.lastModifiedDate = new Date(data[data.length - 1].updatedAt).valueOf();
     }
   }
-  account.lastPulledDates.meetings = now;
-  await saveDomain(domain);
+
+  await DomainRepository.saveLastPulledDate(hubId, EntityTypeEnum.Meetings, now);
 
   return true;
 };
