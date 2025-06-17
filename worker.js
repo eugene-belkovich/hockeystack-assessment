@@ -7,7 +7,7 @@ const Domain = require('./Domain');
 const HubspotService = require('./hubspot.service');
 
 const QUEUE_TASKS_MAX = 2000;
-const QUEUE_CONCURRENCY = 100000000;
+const QUEUE_CONCURRENCY = 100;
 
 const createQueue = (domain, actions, hubId) =>
   queue(async (action, callback) => {
