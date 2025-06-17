@@ -9,12 +9,17 @@ const hubspotClient = new hubspot.Client({ accessToken: '' });
 const propertyPrefix = 'hubspot__';
 let expirationDate;
 
+const OperatorEnum = {
+  GreaterOrEqual: 'GTE',
+  LessOrEqual: 'LTE'
+};
+
 const generateLastModifiedDateFilter = (date, nowDate, propertyName = 'hs_lastmodifieddate') => {
   const lastModifiedDateFilter = date ?
     {
       filters: [
-        { propertyName, operator: 'GTQ', value: `${date.valueOf()}` },
-        { propertyName, operator: 'LTQ', value: `${nowDate.valueOf()}` }
+        { propertyName, operator: OperatorEnum.GreaterOrEqual, value: `${date.valueOf()}` },
+        { propertyName, operator: OperatorEnum.LessOrEqual, value: `${nowDate.valueOf()}` }
       ]
     } :
     {};
@@ -281,7 +286,7 @@ const drainQueue = async (domain, actions, q) => {
   if (q.length() > 0) await q.drain();
 
   if (actions.length > 0) {
-    goal(actions)
+    goal(actions);
   }
 
   return true;
