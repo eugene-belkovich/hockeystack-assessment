@@ -5,8 +5,11 @@ SECURITY:
 PERFORMANCE:
 - make queue as sigleton, not pass accross param, use as service 
 - run processContacts, processCompanies, processMeetings in parallel not in sequence
-- add cache for entities like associations, mappings like contactId-to-email, contact and etc to avoid unnecessary API calls 
+- add cache for repeating queries
+- add cache for entities like associations, mappings like contactId-to-email, contact and etc to avoid unnecessary API calls
 - skip saving of entities if exist in db (or cache)
+- add indexes to db collections
+- change retry time out to: 1000, 2000, 5000, 10000
 
 STRUCTURE:
 - moved pagination logic to a separate service/function
