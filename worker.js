@@ -6,14 +6,13 @@ const {filterNullValuesFromObject} = require('./utils');
 const DomainRepository = require('./domain.repository');
 const Domain = require('./Domain');
 const {OperatorEnum, EntityTypeEnum} = require('./enum');
+const {retry} = require('./retry.service');
 
 const hubspotClient = new hubspot.Client({accessToken: ''});
 
 const LIMIT = 100;
 const TOTAL_MIN = 0;
 const TOTAL_MAX = 9900;
-const TRY_COUNT_MAX = 4;
-const TIMEOUT_5_SEC = 5000;
 const QUEUE_TASKS_MAX = 2000;
 const QUEUE_CONCURRENCY = 100000000;
 
@@ -90,25 +89,24 @@ const processCompanies = async (domain, hubId, q) => {
       after: offsetObject.after
     };
 
-    let searchResult = {};
-
-    let tryCount = 0;
-    while (tryCount <= TRY_COUNT_MAX) {
-      try {
+    const searchResult = await retry(
+      async () => {
         console.log('Company: START fetch company batch');
-        searchResult = await hubspotClient.crm.companies.searchApi.doSearch(searchObject);
-        break;
-      } catch (err) {
-        tryCount++;
-
-        if (new Date() > (tokenExpirationMap.get(hubId) || new Date(0))) await refreshAccessToken(domain, hubId);
-
-        await new Promise(resolve => setTimeout(resolve, TIMEOUT_5_SEC * Math.pow(2, tryCount)));
+        const result = await hubspotClient.crm.companies.searchApi.doSearch(searchObject);
+        console.log('Company: END fetch company batch');
+        return result;
+      },
+      {
+        onRetry: async error => {
+          console.log('Retrying due to error:', error.message);
+          if (new Date() > (tokenExpirationMap.get(hubId) || new Date(0))) {
+            await refreshAccessToken(domain, hubId);
+          }
+        }
       }
-    }
-    console.log('Company: END fetch company batch');
+    );
 
-    if (!searchResult) throw new Error('Failed to fetch companies for the 4th time. Aborting.');
+    if (!searchResult) throw new Error('Failed to fetch companies after all retries');
 
     const data = searchResult?.results || [];
 
@@ -180,25 +178,24 @@ const processContacts = async (domain, hubId, q) => {
       after: offsetObject.after
     };
 
-    let searchResult = {};
-
-    let tryCount = 0;
-    while (tryCount <= TRY_COUNT_MAX) {
-      try {
+    const searchResult = await retry(
+      async () => {
         console.log('Contact: START fetch contact batch');
-        searchResult = await hubspotClient.crm.contacts.searchApi.doSearch(searchObject);
-        break;
-      } catch (err) {
-        tryCount++;
-
-        if (new Date() > (tokenExpirationMap.get(hubId) || new Date(0))) await refreshAccessToken(domain, hubId);
-
-        await new Promise(resolve => setTimeout(resolve, TIMEOUT_5_SEC * Math.pow(2, tryCount)));
+        const result = await hubspotClient.crm.contacts.searchApi.doSearch(searchObject);
+        console.log('Contact: END fetch contact batch');
+        return result;
+      },
+      {
+        onRetry: async error => {
+          console.log('Retrying due to error:', error.message);
+          if (new Date() > (tokenExpirationMap.get(hubId) || new Date(0))) {
+            await refreshAccessToken(domain, hubId);
+          }
+        }
       }
-    }
-    console.log('Contact: END fetch contact batch');
+    );
 
-    if (!searchResult) throw new Error('Failed to fetch contacts for the 4th time. Aborting.');
+    if (!searchResult) throw new Error('Failed to fetch contacts after all retries');
 
     const data = searchResult.results || [];
 
@@ -297,21 +294,22 @@ const processMeetings = async (domain, hubId, q) => {
       after: offsetObject.after
     };
 
-    let searchResult = {};
-    let tryCount = 0;
-    while (tryCount <= TRY_COUNT_MAX) {
-      try {
+    const searchResult = await retry(
+      async () => {
         console.log('Meeting: START fetch contact batch');
-
-        searchResult = await hubspotClient.crm.objects.searchApi.doSearch('meetings', searchObject);
-        break;
-      } catch (err) {
-        tryCount++;
-        if (new Date() > (tokenExpirationMap.get(hubId) || new Date(0))) await refreshAccessToken(domain, hubId);
-        await new Promise(resolve => setTimeout(resolve, TIMEOUT_5_SEC * Math.pow(2, tryCount)));
+        const result = await hubspotClient.crm.objects.searchApi.doSearch('meetings', searchObject);
+        console.log('Meeting: END fetch contact batch');
+        return result;
+      },
+      {
+        onRetry: async error => {
+          console.log('Retrying due to error:', error.message);
+          if (new Date() > (tokenExpirationMap.get(hubId) || new Date(0))) {
+            await refreshAccessToken(domain, hubId);
+          }
+        }
       }
-    }
-    console.log('Meeting: END fetch contact batch');
+    );
 
     if (!searchResult) throw new Error('Failed to fetch meetings for the 4th time. Aborting.');
     const data = searchResult.results || [];
