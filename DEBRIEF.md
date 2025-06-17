@@ -12,6 +12,7 @@ PERFORMANCE:
 - change retry time out to: 1000, 2000, 5000, 10000
 
 STRUCTURE:
+- fully describe Domain model
 - moved pagination logic to a separate service/function
 + moved retry logic to a separate service/function
 + moved processContacts, processCompanies, processMeetings into process.service.js
