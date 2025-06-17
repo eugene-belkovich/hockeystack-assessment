@@ -19,6 +19,7 @@ STRUCTURE:
 + moved refreshAccessToken into hubspot.service.js
 - moved mapping logic to a separate functions and rewrite them in more readable way
 - stop pass domain object to all functions, use it as a service
+- add null and undefined checks for all objects across the app 
 
 BUGS:
 + QUEUE_CONCURRENCY = 100000000 is too high, possibly causing memory issues, between start with something reasonable 10-50-100
